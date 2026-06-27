@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROXY SMS - Numara Al</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg: #0a0a12; --bg-card: #12121d; --bg-card-hover: #181827; --bg-dropdown: #1a1a28;
+            --border: #1e1e30; --primary: #6c5ce7; --primary-hover: #7d6ff0;
+            --primary-glow: rgba(108, 92, 231, 0.25); --green: #00b894; --green-glow: rgba(0, 184, 148, 0.2);
+            --yellow: #fdcb6e; --yellow-glow: rgba(253, 203, 110, 0.2); --red: #e17055;
+            --red-glow: rgba(225, 112, 85, 0.2); --text: #eeeef5; --text-secondary: #9898b0; --text-muted: #5e5e72;
+            --radius: 10px; --radius-lg: 16px; --shadow: 0 8px 30px rgba(0,0,0,0.5);
+            --shadow-lg: 0 16px 50px rgba(0,0,0,0.6); --font: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'SF Mono', 'Fira Code', monospace; --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+        a { text-decoration: none; color: inherit; }
+
+        .navbar { background: rgba(10,10,18,0.9); backdrop-filter: blur(30px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 30px rgba(0,0,0,0.3); }
+        .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; }
+        .nav-left { display: flex; align-items: center; gap: 10px; }
+        .nav-logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; }
+        .nav-logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--primary), #a78bfa); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #fff; box-shadow: 0 4px 20px var(--primary-glow); }
+        .nav-right { display: flex; align-items: center; gap: 8px; }
+        .nav-menu { display: flex; align-items: center; gap: 4px; }
+        .nav-item { padding: 8px 14px; font-size: 13px; font-weight: 500; color: var(--text-secondary); border-radius: 6px; transition: var(--transition); cursor: pointer; white-space: nowrap; }
+        .nav-item:hover { color: var(--text); background: var(--bg-card); }
+        .nav-item.active { color: var(--primary); background: var(--primary-glow); }
+        .nav-balance { background: linear-gradient(135deg, #6c5ce7, #8b5cf6); color: #fff !important; padding: 8px 16px !important; border-radius: 20px !important; font-weight: 600 !important; font-size: 13px !important; cursor: default; box-shadow: 0 4px 16px var(--primary-glow); white-space: nowrap; }
+        .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 8px; z-index: 1001; }
+        .hamburger span { width: 22px; height: 2px; background: var(--text); border-radius: 2px; transition: var(--transition); }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+
+        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1999; backdrop-filter: blur(4px); }
+        .sidebar-overlay.open { display: block; }
+        .sidebar { display: none; position: fixed; top: 0; right: -320px; width: 300px; height: 100vh; background: #0f0f1a; border-left: 1px solid var(--border); z-index: 2000; transition: right 0.35s ease; box-shadow: -10px 0 50px rgba(0,0,0,0.5); flex-direction: column; }
+        .sidebar.open { right: 0; }
+        .sidebar-header { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .sidebar-header h3 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .sidebar-close { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-card); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary); transition: var(--transition); }
+        .sidebar-close:hover { color: var(--text); background: var(--bg-card-hover); }
+        .sidebar-nav { flex: 1; padding: 16px 14px; display: flex; flex-direction: column; gap: 2px; }
+        .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; font-size: 13.5px; font-weight: 500; color: var(--text-secondary); border-radius: var(--radius); transition: var(--transition); }
+        .sidebar-link:hover { background: var(--bg-card); color: var(--text); }
+        .sidebar-link.active { background: var(--primary-glow); color: var(--primary); }
+        .sidebar-link i { width: 20px; text-align: center; font-size: 15px; }
+        .sidebar-footer { padding: 16px 14px; border-top: 1px solid var(--border); }
+        .sidebar-logout { display: flex; align-items: center; gap: 12px; padding: 12px 16px; font-size: 13.5px; font-weight: 500; color: var(--red); border-radius: var(--radius); cursor: pointer; width: 100%; background: none; border: none; font-family: var(--font); }
+        .sidebar-logout:hover { background: var(--red-glow); }
+
+        .main-content { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+        .page-header { margin-bottom: 28px; }
+        .page-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+        .page-header p { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
+
+        .dropdown-container { position: relative; margin-bottom: 20px; }
+        .dropdown-btn { width: 100%; padding: 14px 18px; background: var(--bg-card); border: 2px solid var(--border); border-radius: var(--radius); color: var(--text); font-size: 14px; font-family: var(--font); cursor: pointer; transition: var(--transition); display: flex; align-items: center; justify-content: space-between; text-align: left; }
+        .dropdown-btn:hover { border-color: var(--primary); }
+        .dropdown-btn.open { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-glow); border-radius: var(--radius) var(--radius) 0 0; }
+        .dropdown-btn .placeholder { color: var(--text-muted); }
+        .dropdown-btn .selected-text { display: flex; align-items: center; gap: 10px; }
+        .dropdown-btn .arrow { transition: var(--transition); }
+        .dropdown-btn.open .arrow { transform: rotate(180deg); }
+        .dropdown-menu { display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-dropdown); border: 2px solid var(--primary); border-top: none; border-radius: 0 0 var(--radius) var(--radius); z-index: 100; max-height: 260px; overflow-y: auto; box-shadow: var(--shadow-lg); }
+        .dropdown-menu.open { display: block; }
+        .dropdown-item { padding: 12px 18px; cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-secondary); }
+        .dropdown-item:hover { background: var(--bg-card-hover); color: var(--text); }
+        .dropdown-item.selected { background: var(--primary-glow); color: var(--primary); }
+        .dropdown-item i { font-size: 18px; width: 22px; text-align: center; }
+        .dropdown-item .flag { font-size: 20px; }
+        .dropdown-item .price { margin-left: auto; font-size: 12px; color: var(--text-muted); }
+        .dropdown-loading { padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+        .dropdown-empty { padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+        .alert { padding: 14px 18px; border-radius: var(--radius); font-size: 13px; margin-bottom: 20px; display: none; animation: fadeInUp 0.4s ease; line-height: 1.5; }
+        .alert.visible { display: flex; align-items: flex-start; gap: 10px; }
+        .alert-warning { background: var(--yellow-glow); border: 1px solid rgba(253,203,110,0.3); color: var(--yellow); }
+        .alert-error { background: var(--red-glow); border: 1px solid rgba(225,112,85,0.4); color: var(--red); }
+        .alert-info { background: rgba(108,92,231,0.1); border: 1px solid rgba(108,92,231,0.3); color: var(--primary); }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 28px; border-radius: var(--radius); font-weight: 600; font-size: 14px; cursor: pointer; border: none; font-family: var(--font); transition: var(--transition); }
+        .btn-primary { background: linear-gradient(135deg, #6c5ce7, #8b5cf6); color: #fff; box-shadow: 0 6px 25px rgba(108,92,231,0.4); }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(108,92,231,0.6); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-block { width: 100%; justify-content: center; }
+
+        .result-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; text-align: center; margin-bottom: 32px; box-shadow: var(--shadow-lg); animation: fadeInUp 0.5s ease; transition: opacity 0.5s ease, transform 0.5s ease; }
+        .result-card.hiding { opacity: 0; transform: translateY(-20px); }
+        .result-number { font-family: var(--font-mono); font-size: 28px; font-weight: 700; color: var(--green); letter-spacing: 2px; margin: 12px 0; }
+        .result-timer { font-family: var(--font-mono); font-size: 16px; color: var(--yellow); margin-bottom: 8px; }
+        .result-timer.danger { color: var(--red); animation: pendingPulse 1s ease-in-out infinite; }
+        .result-timer.done { color: var(--green); }
+        @keyframes pendingPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .result-info { font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+        .sms-display { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-top: 16px; display: none; }
+        .sms-display.visible { display: block; animation: fadeInUp 0.5s ease; }
+        .sms-code-large { font-family: var(--font-mono); font-size: 36px; font-weight: 700; color: var(--green); letter-spacing: 6px; text-shadow: 0 0 30px var(--green-glow); }
+
+        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 32px; }
+        .table-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); min-width: 750px; }
+        .table-container table { width: 100%; border-collapse: collapse; }
+        .table-container thead th { text-align: left; padding: 14px 10px; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.2); white-space: nowrap; }
+        .table-container tbody td { padding: 10px 10px; font-size: 11.5px; color: var(--text-secondary); border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
+        .table-container tbody tr:last-child td { border-bottom: none; }
+        .table-container tbody tr { transition: var(--transition); }
+        .table-container tbody tr:hover td { background: var(--bg-card-hover); color: var(--text); }
+        .badge { display: inline-flex; align-items: center; gap: 3px; padding: 3px 7px; border-radius: 10px; font-size: 10px; font-weight: 500; white-space: nowrap; }
+        .badge-success { background: var(--green-glow); color: var(--green); }
+        .badge-pending { background: var(--yellow-glow); color: var(--yellow); animation: pendingPulse 2s ease-in-out infinite; }
+        .badge-cancelled { background: var(--red-glow); color: var(--red); }
+        .badge-refunded { background: rgba(116,185,255,0.2); color: #74b9ff; }
+        .sms-code { font-family: var(--font-mono); background: rgba(108,92,231,0.1); padding: 2px 5px; border-radius: 3px; color: var(--primary); font-weight: 600; letter-spacing: 0.5px; font-size: 10.5px; }
+        .copy-group { display: flex; align-items: center; gap: 3px; }
+        .btn-copy { background: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 3px 6px; font-size: 10px; border-radius: 3px; cursor: pointer; transition: var(--transition); flex-shrink: 0; }
+        .btn-copy:hover { color: var(--primary); border-color: var(--primary); }
+        .btn-copy.copied { color: var(--green); border-color: var(--green); }
+        .section-title { font-size: 16px; font-weight: 600; margin-bottom: 14px; letter-spacing: -0.3px; }
+
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 3000; }
+        .toast { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 18px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-lg); animation: slideInRight 0.3s ease; margin-bottom: 8px; font-size: 13px; }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast.success { border-left: 3px solid var(--green); }
+        .toast.error { border-left: 3px solid var(--red); }
+
+        .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .footer { border-top: 1px solid var(--border); padding: 24px; text-align: center; margin-top: 40px; }
+        .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+        .footer-links { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+        .footer-links a { font-size: 12px; color: var(--text-muted); transition: var(--transition); }
+        .footer-links a:hover { color: var(--primary); }
+        .footer-copy { font-size: 12px; color: var(--text-muted); }
+
+        @media (max-width: 768px) { .nav-menu .nav-item:not(.nav-balance) { display: none; } .hamburger { display: flex; } .sidebar { display: flex; } }
+        @media (min-width: 769px) { .hamburger { display: none !important; } .sidebar { display: none !important; } .sidebar-overlay { display: none !important; } }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="nav-inner">
+            <div class="nav-left"><a href="index.html" class="nav-logo"><div class="nav-logo-icon"><i class="fas fa-sms"></i></div> ROXY SMS</a></div>
+            <div class="nav-right">
+                <div class="nav-menu">
+                    <a href="dashboard.html" class="nav-item">Panel</a>
+                    <a href="virtual-number.html" class="nav-item active">Numara Al</a>
+                    <a href="balance.html" class="nav-item">Bakiye</a>
+                    <a href="support.html" class="nav-item">Destek</a>
+                </div>
+                <span class="nav-balance" id="navBalance">₺ 0,00</span>
+                <div class="hamburger" id="hamburger" onclick="toggleSidebar()"><span></span><span></span><span></span></div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header"><h3><i class="fas fa-sms" style="color:var(--primary);"></i> ROXY SMS</h3><button class="sidebar-close" onclick="toggleSidebar()"><i class="fas fa-times"></i></button></div>
+        <div class="sidebar-nav">
+            <a href="dashboard.html" class="sidebar-link"><i class="fas fa-th-large"></i> Panel</a>
+            <a href="virtual-number.html" class="sidebar-link active"><i class="fas fa-mobile-alt"></i> Numara Al</a>
+            <a href="balance.html" class="sidebar-link"><i class="fas fa-wallet"></i> Bakiye</a>
+            <a href="support.html" class="sidebar-link"><i class="fas fa-headset"></i> Destek</a>
+            <a href="profile.html" class="sidebar-link"><i class="fas fa-user-cog"></i> Profil</a>
+        </div>
+        <div class="sidebar-footer"><button class="sidebar-logout" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Çıkış</button></div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <main class="main-content">
+        <div class="page-header"><h1>📱 Sanal Numara Al</h1><p>Ülke ve hizmet seçin, anında numaranızı alın</p></div>
+
+        <div class="alert alert-warning" id="activeOrderAlert"><i class="fas fa-exclamation-triangle"></i><span>Şu anda <strong id="activeOrderInfo">bekleyen bir siparişiniz</strong> var.</span></div>
+        <div class="alert alert-error" id="apiErrorAlert"><i class="fas fa-exclamation-circle"></i><span>API ile ilgili sorun oluştu. Lütfen daha sonra tekrar deneyin veya destek ekibiyle iletişime geçin.</span></div>
+
+        <div class="dropdown-container">
+            <button class="dropdown-btn" id="countryDropdown" onclick="toggleDropdown('country')"><span class="selected-text" id="countrySelectedText"><span class="placeholder">🌍 Ülke seçin...</span></span><i class="fas fa-chevron-down arrow"></i></button>
+            <div class="dropdown-menu" id="countryMenu"><div class="dropdown-loading"><div class="spinner"></div> Yükleniyor...</div></div>
+        </div>
+        <div class="dropdown-container">
+            <button class="dropdown-btn" id="serviceDropdown" onclick="toggleDropdown('service')"><span class="selected-text" id="serviceSelectedText"><span class="placeholder">📦 Önce ülke seçin</span></span><i class="fas fa-chevron-down arrow"></i></button>
+            <div class="dropdown-menu" id="serviceMenu"><div class="dropdown-empty">Önce ülke seçin</div></div>
+        </div>
+
+        <div class="alert alert-info" id="priceInfo" style="display:none;"><i class="fas fa-tag"></i><span>Hizmet ücreti: <strong id="priceDisplay">₺ 0,00</strong> | Bakiyeniz: <strong id="balanceDisplay">₺ 0,00</strong></span></div>
+
+        <button class="btn btn-primary btn-block" id="buyButton" onclick="buyNumber()"><i class="fas fa-shopping-cart"></i> Numara Satın Al</button>
+
+        <div class="result-card" id="resultCard" style="display:none;">
+            <i class="fas fa-check-circle" style="font-size:40px;color:var(--green);"></i>
+            <p class="result-info">Numaranız hazır!</p>
+            <div class="result-number" id="resultNumber"></div>
+            <p class="result-info">Hizmet: <strong id="resultService"></strong> | Ülke: <strong id="resultCountry"></strong></p>
+            <p class="result-info">Kalan süre:</p>
+            <div class="result-timer" id="resultTimer">⏳ 20:00</div>
+            <div class="sms-display" id="smsDisplay">
+                <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">📨 SMS Kodu Geldi!</p>
+                <div class="sms-code-large" id="smsCodeLarge"></div>
+                <button class="btn btn-primary" style="margin-top:12px;" onclick="copyText(document.getElementById('smsCodeLarge').textContent, this)"><i class="fas fa-copy"></i> Kodu Kopyala</button>
+            </div>
+            <button class="btn btn-block" id="cancelButton" style="background:var(--red-glow);color:var(--red);border:1px solid rgba(225,112,85,0.3);margin-top:12px;display:none;" onclick="cancelCurrentOrder()"><i class="fas fa-ban"></i> İptal Et</button>
+            <p id="cancelTimerText" style="margin-top:8px;display:none;color:var(--yellow);font-family:var(--font-mono);font-size:12px;"></p>
+        </div>
+
+        <h3 class="section-title" style="margin-top:40px;">📋 Sipariş Geçmişi</h3>
+        <div class="table-wrapper"><div class="table-container"><table><thead><tr><th>Numara</th><th>Ülke</th><th>Hizmet</th><th>Tutar</th><th>Durum</th><th>SMS Kodu</th><th>Tarih</th></tr></thead><tbody id="historyTableBody"></tbody></table></div></div>
+    </main>
+
+    <footer class="footer"><div class="footer-inner"><div class="footer-links"><a href="#">Gizlilik Politikası</a><a href="#">Kullanım Şartları</a><a href="#">İade Sözleşmesi</a><a href="#">Çerez Politikası</a><a href="#">KVKK</a></div><p class="footer-copy">© 2026 ROXY SMS</p></div></footer>
+
+    <script>
+        firebase.initializeApp({
+            apiKey: "AIzaSyANKdlyNdqdq5E9ClKpRHlzfD05EqmXPp0",
+            authDomain: "roxysms.firebaseapp.com",
+            projectId: "roxysms",
+            storageBucket: "roxysms.firebasestorage.app",
+            messagingSenderId: "421615166014",
+            appId: "1:421615166014:web:a39b7e014e89c22d81a76f"
+        });
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const API_BASE = '/.netlify/functions/api';
+        const SMS_TIMEOUT_MINUTES = 20;
+        const CANCEL_WAIT_SECONDS = 120;
+        const AUTO_CLOSE_SECONDS = 15;
+        const RUB_TRY_RATE = 0.60;
+        const PROFIT_RATE = 0.50;
+
+        let currentUser = null;
+        let selectedCountry = null;
+        let selectedService = null;
+        let activeOrder = null;
+        let currentBalance = 0;
+        let timerInterval = null;
+        let autoCloseTimeout = null;
+        let smsArrived = false;
+        let smsPollInterval = null;
+        let countries = [];
+        let services = [];
+
+        function calculatePrice(rubPrice) { return Math.ceil(rubPrice * RUB_TRY_RATE * (1 + PROFIT_RATE)); }
+
+        const serviceIcons = {
+            'whatsapp': 'fab fa-whatsapp', 'telegram': 'fab fa-telegram', 'instagram': 'fab fa-instagram',
+            'twitter': 'fab fa-x-twitter', 'google': 'fab fa-google', 'facebook': 'fab fa-facebook',
+            'tiktok': 'fab fa-tiktok', 'discord': 'fab fa-discord'
+        };
+        const serviceColors = {
+            'whatsapp': '#25d366', 'telegram': '#0088cc', 'instagram': '#e1306c',
+            'twitter': '#fff', 'google': '#ea4335', 'facebook': '#1877f2',
+            'tiktok': '#ff0050', 'discord': '#5865f2'
+        };
+
+        function getServiceIcon(name) {
+            const key = (name || '').toLowerCase().replace(/[^a-z]/g, '');
+            for (const [k, v] of Object.entries(serviceIcons)) { if (key.includes(k)) return v; }
+            return 'fas fa-question-circle';
+        }
+        function getServiceColor(name) {
+            const key = (name || '').toLowerCase().replace(/[^a-z]/g, '');
+            for (const [k, v] of Object.entries(serviceColors)) { if (key.includes(k)) return v; }
+            return '#fff';
+        }
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = 'login.html'; return; }
+            currentUser = user;
+            await initPage();
+        });
+
+        async function initPage() {
+            try { const doc = await db.collection('users').doc(currentUser.uid).get();
+                currentBalance = doc.exists ? (doc.data().balance || 0) : 0; } catch (e) { currentBalance = 0; }
+            updateBalanceDisplay();
+            await loadCountries();
+            try { const snap = await db.collection('orders').where('userId', '==', currentUser.uid).where('status', '==', 'pending').limit(1).get(); if (!snap.empty) { activeOrder = { id: snap.docs[0].id, ...snap.docs[0].data() }; if (activeOrder.sms) smsArrived = true; else startSmsPolling();
+                    document.getElementById('activeOrderAlert').classList.add('visible');
+                    document.getElementById('activeOrderInfo').textContent = `${activeOrder.service} için ${activeOrder.number}`;
+                    showActiveOrderResult(); } } catch (e) {}
+            await loadOrderHistory();
+        }
+
+        async function loadCountries() {
+            const menu = document.getElementById('countryMenu');
+            menu.innerHTML = '<div class="dropdown-loading"><div class="spinner"></div> Yükleniyor...</div>';
+            countries = [];
+            try {
+                const res = await fetch(`${API_BASE}?action=get-countries`);
+                const data = await res.json();
+                let list = [];
+                if (Array.isArray(data) && data.length > 0) list = data;
+                else if (data.success !== false && data.countries) list = data.countries;
+                countries = list.map(c => ({ id: c.id || c.code || c.country_id, name: c.name || c.title || c.country_name, flag: c.flag || '🌍' }));
+            } catch (e) { console.error('Ülke API hatası:', e); }
+            if (countries.length === 0) { menu.innerHTML = '<div class="dropdown-empty">⚠️ Ülke verisi yüklenemedi</div>'; return; }
+            menu.innerHTML = countries.map(c => `<div class="dropdown-item" onclick="selectItem('country', '${c.id}')" data-id="${c.id}"><span class="flag">${c.flag || '🌍'}</span><span>${c.name}</span></div>`).join('');
+        }
+
+        async function loadServices(countryId) {
+            const menu = document.getElementById('serviceMenu');
+            const btn = document.getElementById('serviceDropdown');
+            menu.innerHTML = '<div class="dropdown-loading"><div class="spinner"></div> Yükleniyor...</div>';
+            services = [];
+            try {
+                const res = await fetch(`${API_BASE}?action=get-prices&country_id=${countryId}`);
+                const data = await res.json();
+                const prices = data.prices || data;
+                if (typeof prices === 'object' && !Array.isArray(prices)) {
+                    for (const [key, rubPrice] of Object.entries(prices)) {
+                        if (typeof rubPrice === 'number') {
+                            const name = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            services.push({ id: key, name: name, priceRub: rubPrice });
+                        }
+                    }
+                }
+            } catch (e) { console.error('Hizmet API hatası:', e); }
+            if (services.length === 0) { menu.innerHTML = '<div class="dropdown-empty">⚠️ Hizmet verisi yüklenemedi</div>'; return; }
+            btn.disabled = false;
+            menu.innerHTML = services.map(s => {
+                const icon = getServiceIcon(s.name);
+                const color = getServiceColor(s.name);
+                const price = calculatePrice(s.priceRub || 0);
+                return `<div class="dropdown-item" onclick="selectItem('service', '${s.id}')" data-id="${s.id}"><i class="${icon}" style="color:${color};"></i><span>${s.name}</span><span class="price">${formatTL(price)}</span></div>`;
+            }).join('');
+        }
+
+        function toggleDropdown(type) {
+            if (activeOrder && !smsArrived) return;
+            if (type === 'service' && !selectedCountry) { showToast('Lütfen önce ülke seçin.', 'error'); return; }
+            closeDropdown(type === 'country' ? 'service' : 'country');
+            const btn = document.getElementById(type + 'Dropdown');
+            const menu = document.getElementById(type + 'Menu');
+            if (menu.classList.contains('open')) closeDropdown(type);
+            else { menu.classList.add('open');
+                btn.classList.add('open'); }
+        }
+
+        function closeDropdown(type) { document.getElementById(type + 'Menu').classList.remove('open');
+            document.getElementById(type + 'Dropdown').classList.remove('open'); }
+
+        async function selectItem(type, id) {
+            const items = type === 'country' ? countries : services;
+            const item = items.find(i => i.id === id); if (!item) return;
+            if (type === 'country') {
+                selectedCountry = item;
+                selectedService = null;
+                document.getElementById('countrySelectedText').innerHTML = `<span class="flag">${item.flag || '🌍'}</span> ${item.name}`;
+                document.getElementById('serviceSelectedText').innerHTML = '<span class="placeholder">📦 Hizmet seçin...</span>';
+                document.getElementById('priceInfo').style.display = 'none';
+                document.getElementById('serviceMenu').innerHTML = '<div class="dropdown-loading"><div class="spinner"></div> Yükleniyor...</div>';
+                await loadServices(item.id);
+            } else {
+                selectedService = item;
+                const icon = getServiceIcon(item.name);
+                const color = getServiceColor(item.name);
+                document.getElementById('serviceSelectedText').innerHTML = `<i class="${icon}" style="color:${color};"></i> ${item.name} <span style="margin-left:auto;color:var(--text-muted);font-size:12px;">${formatTL(calculatePrice(item.priceRub || 0))}</span>`;
+            }
+            document.querySelectorAll(`#${type}Menu .dropdown-item`).forEach(el => el.classList.remove('selected'));
+            const target = document.querySelector(`#${type}Menu .dropdown-item[data-id="${id}"]`);
+            if (target) target.classList.add('selected');
+            closeDropdown(type);
+            updatePriceInfo();
+        }
+
+        function updateBalanceDisplay() { document.getElementById('navBalance').textContent = formatTL(currentBalance);
+            document.getElementById('balanceDisplay').textContent = formatTL(currentBalance); }
+
+        function updatePriceInfo() {
+            const priceInfo = document.getElementById('priceInfo');
+            if (selectedCountry && selectedService) {
+                const price = calculatePrice(selectedService.priceRub || 0);
+                document.getElementById('priceDisplay').textContent = formatTL(price);
+                priceInfo.style.display = 'block';
+            } else { priceInfo.style.display = 'none'; }
+        }
+
+        async function buyNumber() {
+            document.getElementById('apiErrorAlert').classList.remove('visible');
+
+            if (activeOrder) { showToast('Zaten aktif bir siparişiniz var.', 'error'); return; }
+            if (!selectedCountry || !selectedService) { showToast('Lütfen ülke ve hizmet seçin.', 'error'); return; }
+            if (currentBalance <= 0) { showToast('❌ Bakiyeniz yetersiz! Lütfen bakiye yükleyin.', 'error'); return; }
+
+            const price = calculatePrice(selectedService.priceRub || 0);
+            if (currentBalance < price) { showToast('❌ Bakiyeniz yetersiz! Gerekli: ' + formatTL(price), 'error'); return; }
+
+            const btn = document.getElementById('buyButton');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div> Numara alınıyor...';
+
+            try {
+                const res = await fetch(`${API_BASE}?action=get-number&country_id=${selectedCountry.id}&application_id=${selectedService.id}`);
+                if (!res.ok) throw new Error('API yanıt vermedi (HTTP ' + res.status + ')');
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || data.error_msg || 'Numara alınamadı');
+
+                const now = new Date();
+                activeOrder = {
+                    id: db.collection('orders').doc().id, number: data.number || data.phone, service: selectedService.name,
+                    country: selectedCountry.name, priceTL: price, status: 'pending', sms: null,
+                    activationId: data.activation_id || data.activationId, createdAt: now,
+                    expiresAt: new Date(now.getTime() + SMS_TIMEOUT_MINUTES * 60 * 1000),
+                    canCancelAfter: new Date(now.getTime() + CANCEL_WAIT_SECONDS * 1000),
+                    userId: currentUser.uid, userEmail: currentUser.email
+                };
+                smsArrived = false;
+                currentBalance -= price;
+                updateBalanceDisplay();
+                await db.collection('orders').doc(activeOrder.id).set(activeOrder);
+                await db.collection('users').doc(currentUser.uid).update({ balance: firebase.firestore.FieldValue.increment(-price) });
+                document.getElementById('activeOrderAlert').classList.add('visible');
+                document.getElementById('activeOrderInfo').textContent = `${activeOrder.service} için ${activeOrder.number}`;
+                document.getElementById('priceInfo').style.display = 'none';
+                showActiveOrderResult();
+                startSmsPolling();
+                await loadOrderHistory();
+                showToast('✅ Numara başarıyla alındı!', 'success');
+            } catch (e) {
+                console.error('Numara alma hatası:', e);
+                document.getElementById('apiErrorAlert').classList.add('visible');
+                showToast('API ile ilgili sorun oluştu: ' + e.message, 'error');
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Numara Satın Al';
+        }
+
+        async function startSmsPolling() { if (smsPollInterval) clearInterval(smsPollInterval); if (!activeOrder || !activeOrder.activationId || smsArrived) return;
+            smsPollInterval = setInterval(async () => { if (smsArrived || !activeOrder) { clearInterval(smsPollInterval); return; } try { const res = await fetch(`${API_BASE}?action=get-sms&activation_id=${activeOrder.activationId}`); if (!res.ok) return; const data = await res.json(); let smsText = null; if (data.success && data.sms) smsText = data.sms; else if (data.sms && typeof data.sms === 'string') smsText = data.sms; if (smsText) { const m = smsText.match(/\b(\d{4,6})\b/); if (m) await handleSmsReceived(m[1]); } } catch (e) {} }, 10000); }
+
+        async function handleSmsReceived(code) { smsArrived = true;
+            clearInterval(smsPollInterval);
+            clearInterval(timerInterval);
+            activeOrder.sms = code;
+            activeOrder.status = 'completed';
+            await db.collection('orders').doc(activeOrder.id).update({ sms: code, status: 'completed', smsReceivedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            document.getElementById('smsDisplay').classList.add('visible');
+            document.getElementById('smsCodeLarge').textContent = code;
+            document.getElementById('cancelButton').style.display = 'none';
+            document.getElementById('cancelTimerText').style.display = 'none';
+            document.getElementById('resultTimer').textContent = '✅ Tamamlandı';
+            document.getElementById('resultTimer').classList.remove('danger');
+            document.getElementById('resultTimer').classList.add('done');
+            showToast('📨 SMS kodu geldi!', 'success');
+            await loadOrderHistory();
+            scheduleAutoClose(); }
+
+        function showActiveOrderResult() { if (!activeOrder) return;
+            document.getElementById('resultCard').style.display = 'block';
+            document.getElementById('resultCard').classList.remove('hiding');
+            document.getElementById('resultNumber').textContent = activeOrder.number;
+            document.getElementById('resultService').textContent = activeOrder.service;
+            document.getElementById('resultCountry').textContent = activeOrder.country || '—';
+            document.getElementById('priceInfo').style.display = 'none'; if (autoCloseTimeout) clearTimeout(autoCloseTimeout); if (activeOrder.sms) { smsArrived = true;
+                document.getElementById('smsDisplay').classList.add('visible');
+                document.getElementById('smsCodeLarge').textContent = activeOrder.sms;
+                document.getElementById('resultTimer').textContent = '✅ Tamamlandı';
+                document.getElementById('resultTimer').classList.add('done');
+                document.getElementById('cancelButton').style.display = 'none';
+                document.getElementById('cancelTimerText').style.display = 'none';
+                scheduleAutoClose(); } else { startTimers(); } }
+
+        function scheduleAutoClose() { if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+            autoCloseTimeout = setTimeout(() => { document.getElementById('resultCard').classList.add('hiding');
+                setTimeout(() => { document.getElementById('resultCard').style.display = 'none';
+                    document.getElementById('resultCard').classList.remove('hiding');
+                    resetPageState(); }, 500); }, AUTO_CLOSE_SECONDS * 1000); }
+
+        function startTimers() { if (timerInterval) clearInterval(timerInterval);
+            smsArrived = false;
+            document.getElementById('smsDisplay').classList.remove('visible');
+            document.getElementById('resultTimer').classList.remove('done');
+            timerInterval = setInterval(async () => { if (smsArrived) { clearInterval(timerInterval); return; } const now = new Date(); const rs = Math.max(0, Math.ceil((new Date(activeOrder.expiresAt) - now) / 1000)); const rc = Math.max(0, Math.ceil((new Date(activeOrder.canCancelAfter) - now) / 1000)); const mins = Math.floor(rs / 60); const secs = rs % 60; const timerEl = document.getElementById('resultTimer');
+                timerEl.textContent = `⏳ ${mins}:${secs.toString().padStart(2, '0')}`; if (rs <= 60) timerEl.classList.add('danger'); else timerEl.classList.remove('danger'); const cancelBtn = document.getElementById('cancelButton'); const cancelText = document.getElementById('cancelTimerText'); if (rc > 0) { cancelBtn.style.display = 'none';
+                    cancelText.style.display = 'block';
+                    cancelText.textContent = `⏳ İptal için ${rc}s`; } else { cancelText.style.display = 'none';
+                    cancelBtn.style.display = 'block'; } if (rs <= 0 && !smsArrived) { clearInterval(timerInterval); await handleTimeout(); } }, 1000); }
+
+        async function handleTimeout() { if (smsArrived) return;
+            activeOrder.status = 'refunded';
+            currentBalance += activeOrder.priceTL;
+            updateBalanceDisplay();
+            clearInterval(smsPollInterval);
+            await db.collection('orders').doc(activeOrder.id).update({ status: 'refunded' });
+            await db.collection('users').doc(currentUser.uid).update({ balance: firebase.firestore.FieldValue.increment(activeOrder.priceTL) }); try { await fetch(`${API_BASE}?action=cancel&activation_id=${activeOrder.activationId}`); } catch (e) {}
+            document.getElementById('resultTimer').textContent = '⏰ Süre Doldu - İade Edildi';
+            document.getElementById('resultTimer').style.color = 'var(--red)';
+            document.getElementById('cancelButton').style.display = 'none';
+            document.getElementById('cancelTimerText').style.display = 'none';
+            showToast('⏰ Süre doldu, ücret iade edildi.', 'error');
+            await loadOrderHistory();
+            scheduleAutoClose(); }
+
+        async function cancelCurrentOrder() { if (!activeOrder || activeOrder.status !== 'pending' || smsArrived) return; if (!confirm('Siparişi iptal etmek istediğinize emin misiniz?')) return;
+            clearInterval(timerInterval);
+            clearInterval(smsPollInterval); if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+            activeOrder.status = 'cancelled';
+            currentBalance += activeOrder.priceTL;
+            updateBalanceDisplay();
+            await db.collection('orders').doc(activeOrder.id).update({ status: 'cancelled' });
+            await db.collection('users').doc(currentUser.uid).update({ balance: firebase.firestore.FieldValue.increment(activeOrder.priceTL) }); try { await fetch(`${API_BASE}?action=cancel&activation_id=${activeOrder.activationId}`); } catch (e) {}
+            showToast(`İptal edildi. ${formatTL(activeOrder.priceTL)} iade edildi.`, 'success');
+            await loadOrderHistory();
+            document.getElementById('resultCard').classList.add('hiding');
+            setTimeout(() => { document.getElementById('resultCard').style.display = 'none';
+                document.getElementById('resultCard').classList.remove('hiding');
+                resetPageState(); }, 500); }
+
+        function resetPageState() { activeOrder = null;
+            smsArrived = false;
+            clearInterval(timerInterval);
+            clearInterval(smsPollInterval); if (autoCloseTimeout) clearTimeout(autoCloseTimeout);
+            document.getElementById('smsDisplay').classList.remove('visible');
+            document.getElementById('activeOrderAlert').classList.remove('visible');
+            document.getElementById('resultTimer').classList.remove('done', 'danger');
+            document.getElementById('resultTimer').style.color = '';
+            selectedCountry = null;
+            selectedService = null;
+            document.getElementById('countrySelectedText').innerHTML = '<span class="placeholder">🌍 Ülke seçin...</span>';
+            document.getElementById('serviceSelectedText').innerHTML = '<span class="placeholder">📦 Önce ülke seçin</span>';
+            document.getElementById('serviceMenu').innerHTML = '<div class="dropdown-empty">Önce ülke seçin</div>';
+            document.querySelectorAll('.dropdown-item.selected').forEach(el => el.classList.remove('selected'));
+            document.getElementById('priceInfo').style.display = 'none';
+            services = []; }
+
+        async function loadOrderHistory() {
+            const tbody = document.getElementById('historyTableBody');
+            let orders = []; try { const snap = await db.collection('orders').where('userId', '==', currentUser.uid).orderBy('createdAt', 'desc').limit(20).get();
+                orders = snap.docs.map(d => ({ id: d.id, ...d.data() })); } catch (e) {} if (orders.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);"><i class="fas fa-inbox" style="font-size:40px;display:block;margin-bottom:12px;opacity:0.5;"></i>Henüz sipariş yok</td></tr>'; return; }
+            const badges = { 'completed': '<span class="badge badge-success"><i class="fas fa-check"></i> Tamamlandı</span>', 'pending': '<span class="badge badge-pending"><i class="fas fa-spinner fa-spin"></i> Bekleniyor</span>', 'cancelled': '<span class="badge badge-cancelled"><i class="fas fa-times"></i> İptal</span>', 'refunded': '<span class="badge badge-refunded"><i class="fas fa-undo"></i> İade</span>' };
+            tbody.innerHTML = orders.map(o => `<tr><td><div class="copy-group"><span style="color:var(--text);font-weight:500;">${o.number || '—'}</span><button class="btn-copy" onclick="copyText('${o.number || ''}', this)"><i class="fas fa-copy"></i></button></div></td><td>${o.country || '—'}</td><td>${o.service || '—'}</td><td>${formatTL(o.priceTL || 0)}</td><td>${badges[o.status] || o.status}</td><td>${o.sms ? `<div class="copy-group"><span class="sms-code">${o.sms}</span><button class="btn-copy" onclick="copyText('${o.sms}', this)"><i class="fas fa-copy"></i></button></div>` : '<span style="color:var(--text-muted);">—</span>'}</td><td>${formatDate(o.createdAt)}</td></tr>`).join(''); }
+
+        function formatTL(a) { return '₺ ' + Number(a).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+        function formatDate(ts) { if (!ts) return '—';
+            const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+        function showToast(msg, type) { const c = document.getElementById('toastContainer'); const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.innerHTML = `<i class="fas fa-${type==='success'?'check-circle':'exclamation-circle'}" style="color:var(--${type==='success'?'green':'red'});"></i> ${msg}`;
+            c.appendChild(t);
+            setTimeout(() => { t.style.opacity = '0';
+                t.style.transform = 'translateX(100%)';
+                t.style.transition = 'all 0.3s ease';
+                setTimeout(() => t.remove(), 300); }, 2500); }
+        function copyText(text, btn) { navigator.clipboard.writeText(text).then(() => { btn.classList.add('copied');
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                showToast('Kopyalandı!', 'success');
+                setTimeout(() => { btn.classList.remove('copied');
+                    btn.innerHTML = '<i class="fas fa-copy"></i>'; }, 2000); }); }
+        document.addEventListener('click', (e) => { if (!e.target.closest('.dropdown-container')) { closeDropdown('country');
+                closeDropdown('service'); } });
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('open');
+            document.getElementById('hamburger').classList.toggle('active'); }
+        function handleLogout() { auth.signOut().then(() => window.location.href = 'index.html'); }
+        window.toggleSidebar = toggleSidebar;
+        window.handleLogout = handleLogout;
+        window.toggleDropdown = toggleDropdown;
+        window.selectItem = selectItem;
+        window.buyNumber = buyNumber;
+        window.cancelCurrentOrder = cancelCurrentOrder;
+        window.copyText = copyText;
+    </script>
+</body>
+</html>
