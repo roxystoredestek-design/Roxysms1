@@ -1,11 +1,5 @@
 {
   "name": "roxy-sms",
   "version": "1.0.0",
-  "description": "ROXY SMS",
-  "scripts": {
-    "build": "echo 'No build'"
-  },
-  "dependencies": {
-    "node-fetch": "^2.6.7"
-  }
+  "scripts": { "build": "echo ok" }
 }
